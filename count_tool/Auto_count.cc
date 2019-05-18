@@ -29,6 +29,7 @@ int count_num(string& name) {
     char c = fgetc(fin);
     if(c == '\n') num++;
   }
+  fclose(fin);
   return num;
 }
 
@@ -57,7 +58,7 @@ int open_and_read(string path,int &totle,bool flag,bool all) {
     if(all)
       cout<<"into:"<<path<<endl;
     dp = opendir(path.c_str());
-    if(dp == NULL) return 0;
+    if(dp == NULL) {cout<<"[==open file==]"<<endl;return 0;}
     while((dirrp = readdir(dp)) != NULL) {
       if(strcmp(dirrp->d_name,".") == 0) continue;
       if(strcmp(dirrp->d_name,"..") == 0) continue;
@@ -66,6 +67,7 @@ int open_and_read(string path,int &totle,bool flag,bool all) {
     }
     if(all)
       cout<<"exit:"<<path<<endl;
+    closedir(dp);
   }
   return 0;
 }
