@@ -12,7 +12,7 @@ int files = 0;
 
 bool match(string name) {
   auto check_tool = RegexTool::make();
-  check_tool->set_regex("(\\.cc$|\\.c$|\\.h$|\\.hpp$|\\.cxx$)");
+  check_tool->set_regex("(\\.cc$|\\.c$|\\.h$|\\.hpp$|\\.cxx$|\\.java$|\\.py$)");
   vector<pair<int,int>> ret = check_tool->check_str(name.c_str());
   check_tool.release();
   if(!ret.empty()) {
@@ -56,7 +56,7 @@ int open_and_read(string path,int &totle,bool flag,bool all) {
   } else {
     if(path[path.size()-1] != '/') path+='/';
     if(all)
-      cout<<"into:"<<path<<endl;
+      cout<<"<==into:==> "<<path<<endl;
     dp = opendir(path.c_str());
     if(dp == NULL) {cout<<"[==open file==]"<<endl;return 0;}
     while((dirrp = readdir(dp)) != NULL) {
@@ -66,7 +66,7 @@ int open_and_read(string path,int &totle,bool flag,bool all) {
       open_and_read(tmp,totle,flag,all);
     }
     if(all)
-      cout<<"exit:"<<path<<endl;
+      cout<<"<==exit:==> "<<path<<endl;
     closedir(dp);
   }
   return 0;
@@ -79,7 +79,7 @@ int main(int argc,char*argv[])
   string path;
   bool detail = false;
   bool all = false;
-  while((option = getopt(argc,argv,"p:d:a:")) != -1) {
+  while((option = getopt(argc,argv,"p:da")) != -1) {
     switch(option) {
     case 'p': {
                 path = string(optarg,optarg+strlen(optarg));
@@ -87,11 +87,11 @@ int main(int argc,char*argv[])
                 break;
               }
     case 'd': {
-                detail = (strcmp(optarg,"1") == 0);
+                detail = true;
                 break;
               }
     case 'a': {
-                all = (strcmp(optarg,"1") == 0);
+                all = true;
                 break;
               }
     case '?': {
@@ -106,8 +106,8 @@ int main(int argc,char*argv[])
     _exit(0);
   }
   open_and_read(path,totle,detail,all);
-  cout<<"[totle:]"<<"["<<totle<<"]"<<endl;
-  cout<<"[files:]"<<"["<<files<<"]"<<endl;
-  cout<<"[average:]"<<"["<<totle/files<<"]"<<endl;
+  cout<<"totle:"<<"["<<totle<<"]"<<endl;
+  cout<<"files:"<<"["<<files<<"]"<<endl;
+  cout<<"average:"<<"["<<totle/files<<"]"<<endl;
   return 0;
 }
