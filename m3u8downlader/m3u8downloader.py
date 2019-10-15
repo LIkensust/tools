@@ -39,6 +39,28 @@ def main(argv,url) :
     print(url)
     print(out_file_name)
 
+    #创建零时文件夹
+    sl = len(url)
+    if sl >= 10 :
+        tmppath = "./m3u8_tmp_path" + url[sl-10:]
+    else :
+        tmppath = "./m3u8_tmp_path" + url
+
+    if os.path.exists(tmppath):
+        print("\t[error] m3u8 tmp dir is already exist")
+        sys.exit()
+
+    if os.mkdir(tmppath) :
+        print("\t[error] can't create tmp dir")
+        sys.exit()
+    #下载m3u8文件
+
+    #解析文件 1.内容校验 2.url判断
+
+    #下载
+
+    #合并
+
 if __name__ == "__main__":
     if(len(sys.argv) < 2) :
         usage()
