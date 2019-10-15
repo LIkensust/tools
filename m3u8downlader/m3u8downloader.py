@@ -6,6 +6,8 @@ import getopt
 import sys
 import urllib3
 import shutil
+import threading
+
 urllib3.disable_warnings()
 
 def usage() :
@@ -26,7 +28,22 @@ def getBeginUrl(url) :
         return url[:index+1]
     return ""
 
-def downSrc(url,path,limit_num) :
+def downThread(file_list,name_list,path) :
+    for index, file_name in enumerate(file_list) :
+        retry = 0
+        while retry < 3 :
+            try :
+                res = requests.get(file_name, verify=False, timeout = (10,120))
+                break
+            except requests.exceptions.RequestException :
+                retry += 1
+                print "retry [%s][%d]"% (file_name,retry)
+        with open(path + '/' + name_list[index], 'ab') as f:
+            f.write(res.content)
+            f.flush()
+        print(name_list[index])
+
+def downSrc(url,path,limit_num, thread_num = 3) :
     if limit_num < 0:
         limit_num = 99999999;
     all_content = requests.get(url,verify = False).text
@@ -38,31 +55,49 @@ def downSrc(url,path,limit_num) :
     total = len(file_line)
     #print(file_line)
     count = 0
+    file_list = []
+    name_list = []
     for index, line in enumerate(file_line) :
-        try :
-            if "#EXTINF" in line:
-                tmp = str(file_line[index + 1]).split('/')[-1]
-                sl = len(tmp)
-                tmp = tmp[:sl-1]
-                if(tmp.find("http") != -1) :
-                    pd_url = tmp
-                else :
-                    pd_url = begin_url + tmp;
-                res = requests.get(pd_url, verify=False)
-                c_fule_name = str(file_line[index + 1]).split('/')[-1]
-                sl = len(c_fule_name)
-                c_fule_name = c_fule_name[:sl-1]
-                print c_fule_name
-                with open(path + '/' + c_fule_name, 'ab') as f:
-                    f.write(res.content)
-                    f.flush()
-                count = count + 1
-                if count > limit_num :
-                    break
-        except Exception as e:
-            print(e)
-            return False
-    
+        if "#EXTINF" in line:
+            tmp = str(file_line[index + 1]).split('/')[-1]
+            sl = len(tmp)
+            tmp = tmp[:sl-1]
+            if(tmp.find("http") != -1) :
+                pd_url = tmp
+            else :
+                pd_url = begin_url + tmp;
+            c_fule_name = str(file_line[index + 1]).split('/')[-1]
+            sl = len(c_fule_name)
+            c_fule_name = c_fule_name[:sl-1]
+            print c_fule_name
+            file_list.append(pd_url)
+            name_list.append(c_fule_name)
+            count = count + 1
+            if count >= limit_num :
+                break
+
+    # 多线程下载
+    # 每个线程均等分配任务
+    step = (int)(len(file_list) / thread_num)
+    task = []
+    for i in range(0,thread_num - 1) :
+        tmpurl = file_list[:step]
+        tmpname = name_list[:step]
+        file_list = file_list[step+1:]
+        name_list = name_list[step+1:]
+        t = threading.Thread(target = downThread, args = (tmpurl,tmpname, path))
+        task.append(t)
+        t.start()
+
+    t = threading.Thread(target = downThread, args = (file_list,name_list, path))
+    task.append(t)
+    t.start()
+
+    #等待所有线程完成
+    print("downloading..........")
+    for t in task :
+        t.join()
+
     return True
 
 def merge(path,out_name) :
