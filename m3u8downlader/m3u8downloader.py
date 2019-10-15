@@ -7,6 +7,8 @@ import sys
 import urllib3
 import shutil
 import threading
+from tqdm import tqdm
+import time
 
 urllib3.disable_warnings()
 
@@ -28,7 +30,7 @@ def getBeginUrl(url) :
         return url[:index+1]
     return ""
 
-def downThread(file_list,name_list,path) :
+def downThread(file_list,name_list,path,bar,lock) :
     for index, file_name in enumerate(file_list) :
         retry = 0
         while retry < 3 :
@@ -41,9 +43,12 @@ def downThread(file_list,name_list,path) :
         with open(path + '/' + name_list[index], 'ab') as f:
             f.write(res.content)
             f.flush()
-        print(name_list[index])
+        lock.acquire()
+        bar.update(1)
+        lock.release()
+        #print(name_list[index])
 
-def downSrc(url,path,limit_num, thread_num = 3) :
+def downSrc(url,path,limit_num, thread_num = 6) :
     if limit_num < 0:
         limit_num = 99999999;
     all_content = requests.get(url,verify = False).text
@@ -60,16 +65,16 @@ def downSrc(url,path,limit_num, thread_num = 3) :
     for index, line in enumerate(file_line) :
         if "#EXTINF" in line:
             tmp = str(file_line[index + 1]).split('/')[-1]
-            sl = len(tmp)
-            tmp = tmp[:sl-1]
+            tmpindex = tmp.rfind("ts")
+            if (tmpindex == -1) :
+                print("can't read m3u8 file")
+                return False
+            tmp = tmp[:tmpindex+2]
+            c_fule_name = tmp
             if(tmp.find("http") != -1) :
                 pd_url = tmp
             else :
                 pd_url = begin_url + tmp;
-            c_fule_name = str(file_line[index + 1]).split('/')[-1]
-            sl = len(c_fule_name)
-            c_fule_name = c_fule_name[:sl-1]
-            print c_fule_name
             file_list.append(pd_url)
             name_list.append(c_fule_name)
             count = count + 1
@@ -78,6 +83,9 @@ def downSrc(url,path,limit_num, thread_num = 3) :
 
     # 多线程下载
     # 每个线程均等分配任务
+    file_num = len(file_list)
+    pbar = tqdm(total = file_num)
+    threadLock = threading.Lock()
     step = (int)(len(file_list) / thread_num)
     task = []
     for i in range(0,thread_num - 1) :
@@ -85,16 +93,15 @@ def downSrc(url,path,limit_num, thread_num = 3) :
         tmpname = name_list[:step]
         file_list = file_list[step+1:]
         name_list = name_list[step+1:]
-        t = threading.Thread(target = downThread, args = (tmpurl,tmpname, path))
+        t = threading.Thread(target = downThread, args = (tmpurl,tmpname,path,pbar,threadLock))
         task.append(t)
         t.start()
 
-    t = threading.Thread(target = downThread, args = (file_list,name_list, path))
+    t = threading.Thread(target = downThread, args = (file_list,name_list,path,pbar,threadLock))
     task.append(t)
     t.start()
 
     #等待所有线程完成
-    print("downloading..........")
     for t in task :
         t.join()
 
