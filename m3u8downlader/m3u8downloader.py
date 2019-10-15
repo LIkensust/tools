@@ -4,6 +4,8 @@ import os
 import requests
 import getopt
 import sys
+import urllib3
+urllib3.disable_warnings()
 
 def usage() :
     print("============================================")
@@ -15,6 +17,22 @@ def usage() :
     print("|| -h: help            打印帮助列表        ||")
     print("============================================")
 
+def downSrc(url,path) :
+    all_content = requests.get(url,verify = False).text
+    file_line = all_content.split("\n")
+    if (len(file_line) == 0) | (file_line[0].find("#EXTM3U") == -1) :
+        print("\t[error] can't get m3u8 file from url [" + url + "]")
+        return False
+    return True
+
+
+def exitAndClean(clean_src,path,err) :
+    if err :
+        print("\t[error] download failed")
+    if clean_src :
+        if len(path) != 0 :
+            os.rmdir(path)
+    sys.exit()
 
 def main(argv,url) :
     out_file_name = "./m3u8d_output_video.mp4"
@@ -55,12 +73,20 @@ def main(argv,url) :
         sys.exit()
     #下载m3u8文件
 
+    if ~downSrc(url,tmppath) :
+        exitAndClean(clean_src,tmppath,True)
     #解析文件 1.内容校验 2.url判断
 
     #下载
 
     #合并
+    
 
+    #删除零时文件
+    if clean_src :
+        if(len(tmppath) != 0) :
+            os.rmdir(tmppath)
+            print("\t[info] clean m3u8 src files")
 if __name__ == "__main__":
     if(len(sys.argv) < 2) :
         usage()
