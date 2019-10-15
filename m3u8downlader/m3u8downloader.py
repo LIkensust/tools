@@ -5,6 +5,7 @@ import requests
 import getopt
 import sys
 import urllib3
+import shutil
 urllib3.disable_warnings()
 
 def usage() :
@@ -75,7 +76,8 @@ def exitAndClean(clean_src,path,err) :
         print("\t[error] download failed")
     if clean_src :
         if len(path) != 0 :
-            os.rmdir(path)
+           # os.rmdir(path)
+           shutil.rmtree(path)
     print("\t[info] down")
     sys.exit()
 
@@ -111,18 +113,18 @@ def main(argv,url) :
 
     if os.path.exists(tmppath):
         print("\t[error] m3u8 tmp dir is already exist")
-        sys.exit()
+        print("\t[info] try to merge")
+    else :
+        if os.mkdir(tmppath) :
+            print("\t[error] can't create tmp dir")
+            sys.exit()
+        #下载m3u8文件
 
-    if os.mkdir(tmppath) :
-        print("\t[error] can't create tmp dir")
-        sys.exit()
-    #下载m3u8文件
-
-    if not downSrc(url,tmppath) :
-        exitAndClean(clean_src,tmppath,True)
+        if not downSrc(url,tmppath) :
+            exitAndClean(clean_src,tmppath,True)
 
     #合并
-    merge(tmppath, out_name) 
+    merge(tmppath, out_file_name) 
 
     #删除零时文件
     exitAndClean(clean_src,tmppath,False)
